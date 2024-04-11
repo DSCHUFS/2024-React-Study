@@ -22,7 +22,7 @@
 
 
 ### 👥 스터디원
-|팀장|팀원|
-|:---:|:---:|
-|<img src="https://github.com/juhui88.png" width="170">|<img src="https://github.com/Dawon00.png" width="170">
-|[조주희](https://github.com/juhui88)|[서다원](https://github.com/Dawon00)|
+|팀장|팀원|팀원|팀원|팀원|
+|:---:|:---:|:---:|:---:|:---:|
+|<img src="https://github.com/juhui88.png" width="170">|<img src="https://github.com/Dawon00.png" width="170">|<img src="https://github.com/delightedsky.png" width="170"> |<img src="https://github.com/Anas-wg.png" width="170">|<img src="https://github.com/anhyeryeon2.png" width="170">|
+|[조주희](https://github.com/juhui88)|[서다원](https://github.com/Dawon00)|[백희민](https://github.com/delightedsky)|[조완기](https://github.com/Anas-wg)|[안혜련](https://github.com/anhyeryeon2)|
