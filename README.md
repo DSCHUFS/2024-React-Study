@@ -20,6 +20,16 @@
 4. [아이디] 브랜치에서 main 브랜치로 PR(Pull Request)를 보내주세요. ex) docs: 000 챕터 00내용 학습
 5. PR은 마지막에 확인한 사람이 머지를 진행해주세요.
 
+### 💻 스터디 진도
+- 1주차 : 소개 ~ State: 불필요한 상태
+- 2주차 : State : useState 대신 useRef ~ State: 이전 상태 활용하기
+- 3주차 : Props : 불필요한 Props 복사 및 연산 ~ Props : 인라인 스타일 지양하기
+- 4주차 : Props: Css in Js 인라인 스타일 지양하기 ~ 객체보다는 단순한 Props의 장점
+- 5주차 : Components : 컴포넌트 소개 ~  Components : Fragment 지양하기
+- 6주차 : Components : 알아두면 좋은 컴포넌트 네이밍 ~ Components : 컴포넌트 구성하기
+- 7주차 : Rendering
+- 8주차 : Hooks
+- 9주차 : Etc
 
 ### 👥 스터디원
 |팀장|팀원|팀원|팀원|팀원|
