@@ -216,3 +216,106 @@ if(PROMISE_STATE = PROMISE_STATE.FINISH) return <FinishComponent />
 ```
 
 연관된 상태는 묶어서 처리할 수 있는 방법이 있다. 객체가 아니라 간단히 문자열로 묶을 숟 도 있다.
+
+### 연관된 상태 객체로 묶기
+
+- 기존
+```jsx
+// 두가지 상태가 연관된 상황
+const [isLoading, setIsLoading] = useState(false);
+const [isFinish, setIsFinish] = useState(false);
+```
+
+- 연관상태를 객체로 묶어서 내보내기
+
+하나의 State 로 변경 가능
+```jsx
+const [fetchState, setFatchState] = useState({
+  isLoading: false,
+  isFinish: false
+});
+
+setFatchState({
+  isLoading: false,
+  isFinish: true
+})
+
+```
+
+- 코드 반복까지 개선
+이전 상태를 Props로 가져오기
+```jsx
+setFatchState((prevState) =>{
+    ...prevState, // 이전상태는 그대로
+    isFinish: true
+})
+```
+
+한가지 상태를 조작하여 나머지 연관된 상태를 관리하는 개념  
+꼭 1:1 일 필요가 없고 N:1로 표현도 가능하다
+
+하나의 상태가 다른 상태에 영향을 준다면 관련된 상태를 묶는 것도 좋은 방법
+
+
+### useState 대신 useReducer 로 리팩토링
+- 기존
+```jsx
+const [isLoading, setIsLoading] = useState(false);
+const [isFinish, setIsFinish] = useState(false);
+```
+- useReducer 활용
+
+
+상태를 구조화 하는 관점(Redux 와 유사)
+```jsx
+const INIT_STATE = {
+  isLoading: false,
+  isFinish: false
+}
+// if문도 활용 가능
+const reducer = (state, action) => {
+  switch (action.type) {
+    case 'IS_LOADING':
+      return {...state, isLoading : true}
+    case 'IS_FINISH':
+      return {...state, isFinish : true}
+    default: // 기본값 반드시 넣기
+      return INIT_STATE
+  }
+}
+// useReducer 도 get,set 가능
+const [state, dispatch] = useReducer(reducer, INIT_STATE);
+
+
+// 활용
+dispatch({type: 'IS_LOADING'});
+```
+
+순수한 JS 코드이기 때문에 hook, libray에 종속되지 않음.
+
+추상적, 선언적 문법으로 바꾸고, 구조적으로 관리할 수도 있음.
+
+### 상태 로직 Custom Hooks 로 뽑기
+화면에 렌더링 되는 부분을 제외하고, 로직만 빼보는 것이 중요하다.
+- 기존 상태 로직
+```jsx
+const [state, useState] = useState();
+
+useEffect(() => {
+  const fetchData = () => {
+    setState(data);
+  };
+  fetchData();
+},[]);
+
+if(state.isLoading) return <LoadingComponent />;
+if(state.isFail) return <FailComponent />;
+```
+
+- Custom Hooks 로 뽑기(use Prefix 지키기)
+```jsx
+const [isLoading, ifFail] = useFetchData(data);
+
+if(isLoading) return <LoadingComponent />;
+if(ifFail) return <FailComponent />;
+```
