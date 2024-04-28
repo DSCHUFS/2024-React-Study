@@ -29,7 +29,7 @@
 ### 💻 스터디 진도
 - 1주차 : 소개 ~ State: 불필요한 상태
 - 2주차 : State : useState 대신 useRef ~ State: 이전 상태 활용하기
-- 3주차 : Props : 불필요한 Props 복사 및 연산 ~ Props : 인라인 스타일 지양하기
+- 3주차 : Props : 불필요한 Props 복사 및 연산 ~ Props : 인라인 스타일 주의하기
 - 4주차 : Props: Css in Js 인라인 스타일 지양하기 ~ 객체보다는 단순한 Props의 장점
 - 5주차 : Components : 컴포넌트 소개 ~  Components : Fragment 지양하기
 - 6주차 : Components : 알아두면 좋은 컴포넌트 네이밍 ~ Components : 컴포넌트 구성하기
