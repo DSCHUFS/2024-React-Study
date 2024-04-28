@@ -5,6 +5,12 @@
 3. [업데이트되지 않는 값](#업데이트되지-않는-값)
 4. [플래그 상태](#플래그-상태)
 5. [불필요한 상태](#불필요한-상태)
+6. [useState 대신 useRef](#usestate-대신-useref)
+7. [연관된 상태 단순화 하기](#연관된-상태-단순화하기)
+8. [연관된 상태 객체로 묶어내기](#연관된-상태-객체로-묶어내기)
+9. [useState에서 useReducer로 리팩터링](#usestate에서-usereducer로-리팩터링)
+10. [상태 로직 Custom Hooks 로 뽑아내기](#상태-로직-custom-hooks-로-뽑아내기)
+11. [이전 상태 활용하기](#이전-상태-활용하기)
 
 ### 일단, 상태가 무엇일까?
 
@@ -151,3 +157,322 @@ const compUserList = compUserList.filter((user) : boolean => user.completed === 
 (다른 프레임워크에서는 `computed value` 라고 흔히 부르는데, React 에서 공식적인 용어는 아니다.)
 
 결론: 하드하게 계속 `set` 으로 상태를 수정하지 않고 변수에 표현식을 이용해서 담아도 좋다.
+
+### usestate 대신 useRef
+
+컴포넌트의 전체적인 수명과 동일하게 지속된 정보를 일관적으로 제공해야하는 경우.
+
+예를 들어 `isMount` 와 같은 값을 만들어서 관리하고 싶은 경우 `useState` 를 사용할 수도 있다. 아래와 같이 말이다.
+
+```jsx
+function RefInsteadState() : Element {
+	count [isMount, setIsMount] = useState(false);
+
+	useEffect(() : void => {
+		if (!isMount){
+			setIsMount(true); // isMount 상태가 변경되며 리렌더링된다.
+			}
+	}, [isMount]);
+
+	return <div>{isMount && '컴포넌트 마운트 완료'}</div>'
+}
+```
+
+하지만 위의 예시와 같은 경우는 `useState` 이기 때문에 상태 변경시 컴포넌트의 리렌더링을 유발한다. 따라서 `useState` 대신에 `useRef` 를 사용하는 방식을 생각해볼 수 있다. `useRef` 는 리렌더링을 불필요하게 유발하지 않기 때문이다.
+
+```jsx
+function RefInsteadState() : Element {
+	count isMount = useRef(false);
+
+	useEffect(() : () => boolean => {
+		isMount.current = true;
+
+		return () : boolean => (isMount.current = false); // 컴포넌트가 언마운트될 때 false 로 재설정함
+	}, []);
+
+	return <div>{isMount && '컴포넌트 마운트 완료'}</div>'
+}
+```
+
+수정한 코드를 보자. `useEffect` 를 사용해서 컴포넌트가 마운트될 때 `isMount.current` 를 `true`로 설정하고, 컴포넌트가 언마운트될 때 false로 재설정한다. 이 경우에는 `useRef`가 리렌더링을 유발하지 않을 것이다.
+
+`useRef` 는 DOM에만 붙일 수 있는 API는 아니다! 이렇게 컴포넌트의 전체적인 수명이랑 동일하게 생명주기를 움직이도록 해서 일관적인 값을 안전하게 제공할 수 있겠다.
+
+### 연관된 상태 단순화하기
+
+KISS : Keep It Simple Stupid ! 단순하고 멍청한게 복잡한 것보다 낫다.
+
+```jsx
+function FlatState() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
+  const [isError, setIsError] = useState(false);
+
+  const fetchData = () => {
+    setIsLoading(true);
+
+    fetch(url)
+      .then(() => {
+        setIsLoading(false);
+        setIsFinished(true);
+      })
+      .catch(() => {
+        setIsError(true);
+      });
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error</div>;
+  if (isFinished) return <div>Finished</div>;
+}
+```
+
+위 코드에서 문제를 찾아본다면 `isLoading`, `isFinished`, `isError` 가 모두 연관이 되어있다는 것이다. 예를들어 데이터를 가져오는데 성공할 경우에는 `isFinished` 만 성공일 것을 기대하는 것처럼.
+
+이 연관된 상태를 열거형 데이터로 나타내서 코드를 개선해보자. 간단하게 문자열로 묶어서 관리할 것이다.
+
+```jsx
+const PROMISE_STATES = {
+  INIT: "init",
+  LOADING: "loading",
+  FINISHED: "finished",
+  ERROR: "error",
+};
+
+function FlatState() {
+  const [promiseState, setPromiseState] = useState(PROMISE_STATES.INIT);
+
+  const fetchData = () => {
+    setPromiseState(PROMISE_STATES.LOADING);
+
+    fetch(url)
+      .then(() => {
+        setPromiseState(PROMISE_STATES.FINISHED);
+      })
+      .catch(() => {
+        setPromiseState(PROMISE_STATES.ERROR);
+      });
+  };
+
+  if (promiseState === PROMISE_STATES.LOADING) return <div>Loading...</div>;
+  if (promiseState === PROMISE_STATES.ERROR) return <div>Error!</div>;
+  if (promiseState === PROMISE_STATES.FINISHED) return <div>Finished!</div>;
+}
+```
+
+훨씬 개선된 것을 볼 수 있다.
+
+결론: 리액트의 상태를 만들 때 연관된 것들끼리 묶어서 처리하면 에러를 방지하고 코드가 간결 해진다.
+
+### 연관된 상태 객체로 묶어내기
+
+방금 위의 코드에서는 열거열 문자열 데이터를 사용해서 data fetch에 대한 상태를 관리했다. 이번에는 연관된 상태를 객체로 묶어내어 좀 더 코드를 개선해볼거다.
+
+```jsx
+function FlatState() {
+  const [fetchState, setFetchState] = useState({
+    // 객체
+    isLoading: false,
+    isError: false,
+    isFinished: false,
+  });
+
+  const fetchData = () => {
+    setFetchState((prevState) => ({
+      ...prevState,
+      isLoading: true,
+    }));
+
+    fetch(url)
+      .then(() => {
+        setFetchState((prevState) => ({
+          ...prevState,
+          isFinished: true,
+        }));
+      })
+      .catch(() => {
+        setFetchState((prevState) => ({
+          ...prevState,
+          isError: true,
+        }));
+      });
+  };
+
+  return (
+    <div>
+      {fetchState.isLoading && <p>Loading...</p>}
+      {fetchState.isError && <p>Error</p>}
+      {fetchState.isFinished && <p>Finished</p>}
+    </div>
+  );
+}
+```
+
+개선한 코드에서는 상태 관리를 위해서 객체를 사용했다. 상태변화가 될 때에는 이전 상태를 유지하는 …(스프레드 연산자)를 사용해서 업데이트될 부분만 한정해서 업데이트를 해줬다. 훨씬 직관적이다.
+
+이렇게 상태들끼리 관련이 있다면(어떤게 true로 변할 때 다른 것은 false 여야하는 등의) 객체로 묶어서 관리하는 것이 유용할 수있다. 코드의 가독성도 향상되고 좀 더 선언형 프로그래밍 스타일이다.
+
+평소에 상태를 만들 때 항상 1대1의 관계를 만들려고 했었는데, 강의 내용을 들으니 한가지 상태가 무조건 하나의 `useState` 로 뽑힐 필요는 없는 것 같다. 여러 상태를 하나의 `useState` 로 표현할 수 있음을 기억하자!
+
+결론: 리액트의 상태를 만들 때 **객체로 연관된 것들끼리 묶어서 처리**할 수 있다.
+
+### useState에서 useReducer로 리팩터링
+
+```jsx
+const [isLoading, setIsLoading] = useState(false);
+const [isFinished, setIsFinished] = useState(false);
+⬇️
+const [state, dispatch] = useReducer(reducer, INIT_STATE);
+```
+
+상태를 이번에는 useReducer 를 사용해서 관리해보자
+
+```jsx
+const INIT_STATE = {
+  isLoading: false,
+  isSuccess: false,
+  isFail: false,
+};
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case "FETCH_LOADING":
+      return {
+        isLoading: true,
+        isSuccess: false,
+        isFail: false,
+      };
+    case "FETCH_SUCCESS":
+      return {
+        isLoading: false,
+        isSuccess: true,
+        isFail: false,
+      };
+    case "FETCH_FAIL":
+      return {
+        isLoading: false,
+        isSuccess: false,
+        isFail: true,
+      };
+    default:
+      return state;
+  }
+};
+
+function StateToReducer() {
+  const [state, dispatch] = useReducer(reducer, INIT_STATE); // 인자: 조작하는 함수, 초기값
+
+  dispatch({ type: "FETCH_LOADING" });
+  fetch(url)
+    .then(() => {
+      dispatch({ type: "FETCH_SUCCESS" });
+    })
+    .catch(() => {
+      dispatch({ type: "FETCH_FAIL" });
+    });
+
+  if (state.isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (state.isSuccess) {
+    return <div>Success</div>;
+  }
+  if (state.isFail) {
+    return <div>Fail</div>;
+  }
+}
+```
+
+`useReducer` 는 `useState` 처럼 작동하지만 복잡한 상태 로직을 외부의 함수로 분리할 수 있다. Redux 에서 쓰는 reducer 와 문법적으로 유사하며, 순수 자바스크립트로 구현한 함수이기 때문에 hook 이나 React 에 의존적인 코드가 아니어서 다른 곳에서도 재사용할 수 있는 코드라는 장점도 있다.
+
+결론: 여러 상태가 연관 됐을 때 `useState` 대신 `useReducer`를 사용하면 상태를 구조화할 수 있다.
+
+### 상태 로직 Custom Hooks 로 뽑아내기
+
+컴포넌트 내부에서 사용되던 fetchData 와 state 로직을 useFetchData 라는 커스텀 훅으로 분리해보자. 화면에 렌더링되는 JSX를 제외하고 로직에 관련된 부분만 분리해보는 훈련이 지속적으로 필요하다. 이를 통해 코드의 재사용성을 높일 수 있다.
+
+```jsx
+const INIT_STATE = {
+  isLoading: false,
+  isSuccess: false,
+  isFail: false,
+};
+
+const ACITON_TYPE = {
+  FETCH_LOADING: "FETCH_LOADING",
+  FETCH_SUCCESS: "FETCH_SUCCESS",
+  FETCH_FAIL: "FETCH_FAIL",
+};
+
+const reducer = (state, action) => {
+  switch (action.type) {
+    case ACITON_TYPE.FETCH_LOADING:
+      return { ...state, isLoading: true, isSuccess: false, isFail: false };
+    case ACITON_TYPE.FETCH_SUCCESS:
+      return { ...state, isLoading: false, isSuccess: true, isFail: false };
+    case ACITON_TYPE.FETCH_FAIL:
+      return { ...state, isLoading: false, isSuccess: false, isFail: true };
+    default:
+      return INIT_STATE;
+  }
+};
+
+const useFetchData = (url) => {
+  const [state, dispatch] = useReducer(reducer, INIT_STATE);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      dispatch({ type: ACITON_TYPE.FETCH_LOADING });
+
+      await fetch(url)
+        .then(() => {
+          dispatch({ type: ACITON_TYPE.FETCH_SUCCESS });
+        })
+        .catch(() => {
+          dispatch({ type: ACITON_TYPE.FETCH_FAIL });
+        });
+    };
+    fetchData();
+  }, [url]);
+
+  return state; // 객체로 활용될 예정
+};
+
+function CustomHooks() {
+  const { isLoading, isFail, isSuccess } = useFetchData("url");
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (isFail) {
+    return <div>Fail...</div>;
+  }
+  if (isSuccess) {
+    return <div>Success...</div>;
+  }
+}
+```
+
+use ~ 에 익숙하다보니까 무조건 return 이 튜플 형태가 되어야한다라고 생각할 수 있지만 그렇지 않다. 위 코드처럼 객체 형태로 내보내도 된다.
+
+결론: Custom Hooks 를 사용하면 코드를 확장성 있고 재사용 가능하게 작성할 수 있다.
+
+### 이전 상태 활용하기
+
+```jsx
+function PrevState() {
+  const [age, setAge] = useState(21);
+
+  function updateState() {
+    setAge(age + 1);
+  }
+
+  function updateFunction() {
+    setAge((prevAge) => prevAge + 1);
+  }
+}
+```
+
+react update 시에 웬만하면 `updateFunction` 처럼 prevState 를 가져와서 사용하는 것을 권장함.(`updater function`). `updateState` 같은 방식은 기존의 state 를 참조해서 업데이트하는 방식인데 이 방식에서 `setState` 자체가 비동기적 처리 과정을 거칠 수 있기 때문에 이전 상태 를 참고하는게 아니라 업데이트되기 전의 상태를 계속 바라볼 수도 있다. 그래서 이런 타이밍적인 실수를 하지 않으려면 prevState 를 가져와서 업데이트해주는 방법이 좋다.
+
+결론: `updater function` 을 이용해 prev state를 고려하면 예상치 못한 결과를 예방할 수 있다.
