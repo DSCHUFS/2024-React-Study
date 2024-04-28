@@ -171,3 +171,89 @@ const complUserList = complUserList.filter((user):boolean => user.completed === 
 1. props를 useState에 넣지 않고 바로 return 문에 사용하기
 2. 컴포넌트 내부 변수는 렌더링마다 고유한 값을 가짐
 3. 따라서 useState가 아닌 const로 상태를 선언하는 게 좋은 경우도 있음
+
+
+***
+### useState 대신 useRef
+
+![alt text](image.png)
+
+리렌더링 방지가 필요하다면 useState 대신 useRef!
+
+컴포넌트의 전체적인 수명과 동일하게 지속된 정보를 일관적으로 제공해야하는 경우 ex) isMount같은 경우
+
+
+***
+### 연관된 상태 단순화하기
+
+![alt text](image-1.png)
+
+복잡할수록 단순하게 => KISS(Keep It Simple Stupid)
+
+위 사진의 경우(원래 코드에선 error까지 있음) 세 변수가 서로 연관되어 있으므로 따로 useState를 통해 관리해 주는 것이 잠재적인 문제가 있음
+
+따라서, 열거형 데이터로 바꿔보자!(객체로 바꿔도 되긴 함)
+
+**결론 : 리액트의 상태를 만들 때 연관된 것들끼리 묶어서 처리하면 에러를 방지하고 코드가 간결해진다** 
+
+***
+### 연관된 상태 객체로 묶어내기
+
+![alt text](image-2.png)
+
+이전 로직을 객체로 바꿔준 거임
+
+***
+### useState에서 useReducer로 리팩터링 하기
+
+~~ㅜㅜuseReducer 잘 모르는 개념,,,~~
+![alt text](image-3.png)
+
+연관된 상태를 구조화한다는 관점에서 봅시다
+
+```javascript
+
+const reducer = (state, action) => {
+  switch(action.type) {
+    case "VALUE1": // 여기서 타입을 내가 명시해야함
+      return {...state, VALUE1 : true}
+
+    case "VALUE2":
+      return {...state, VALUE2 : true}
+
+    case "VALUE3":
+      return {...state, VALUE3: true}
+
+    default:
+      return INIT_STATE
+  }
+}
+...
+const [state, dispatch] = useReducer(reducer, INIT_STATE)
+// useRecuer도 get, set할 수 있음
+// 내부에선 조작하는 함수와 초기값을 넣어주어야 함
+
+dispatch({tyle:"VALUE1"}) // 이런식으로 사용해주면 됨
+```
+
+**결론 : 여러 상태가 연관됐을 때 useState 대신 useReducer를 사용하면 상태를 구조화할 수 있다.** 
+
+***
+### 상태 로직 Custom Hooks로 뽑아내기
+![alt text](image-4.png)
+
+말 그대로 직접 hook을 제작해서 사용하는 것!!
+
+추상화, 추상화, 추상화
+
+***
+### 이전 상태 활용하기
+
+![alt text](image-5.png)
+~~이건 넘 쉬운디~~
+
+이전 상태 가져와서 업데이트 하는 방식으로 사용해야 합니다
+특히 input을 핸들링하는 경우!! 불필요한 에러를 방지할 수 있슴
+
+
+섹션 2 끝~
