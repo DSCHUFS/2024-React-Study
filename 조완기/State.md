@@ -319,3 +319,60 @@ const [isLoading, ifFail] = useFetchData(data);
 if(isLoading) return <LoadingComponent />;
 if(ifFail) return <FailComponent />;
 ```
+
+### 이전상태 활용하기
+updater Function 을 사용하여 Previous State를 고려하기
+```jsx
+function test() {
+  const [age, setAge] = useState(0)
+  function updateState(){
+    // 위 state를 참조하여 업데이트 -> 비동기적 처리과정에서 갱신 전 상태를 계속 볼 수도 있음
+
+    setAge(age + 1);
+    setAge(age + 1);
+    setAge(age + 1);
+  }
+
+  function updaterFuction(){
+    // 이렇게 이전상태를 가져와서 업데이트 진행해야함.
+    setAge((prevAge) => a + 1);
+    setAge((prevAge) => a + 1);
+    setAge((prevAge) => a + 1);
+  }
+}
+```
+
+- 두번의 interaction, 같은 상태를 바라볼 경우
+sideeffect 발생 가능
+
+```jsx
+const handleCardNumber = (cardNumber) => {
+    setCardState({
+      ...cardState,
+      cardNumber
+    })
+  }
+
+    const handleCardCompany = (cardCompany) => {
+      setCardState({
+        ...cardState,
+        ...cardCompany
+      })
+  }
+```
+
+```jsx
+const handleCardNumber = (cardNumber) => {
+    setCardState((prevState) =>{
+      ...prevState,
+      cardNumber
+    });
+  }
+
+    const handleCardCompany = (cardCompany) => {
+      setCardState((prevState) => {  
+        ...prevState,
+        ...cardCompany
+      });
+```
+
