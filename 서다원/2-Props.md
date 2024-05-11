@@ -6,6 +6,12 @@
 4. [Single Quotes(작은따옴표) vs Double Quotes(큰따옴표)](#single-quotes작은따옴표-vs-double-quotes큰따옴표)
 5. [알아두면 좋은 Props 네이밍](#알아두면-좋은-props-네이밍)
 6. [인라인 스타일 주의하기](#인라인-스타일-주의하기)
+7. [CSS in JS 인라인 스타일 지양하기](#css-in-js-인라인-스타일-지양하기)
+8. [객체 Props 지양하기](#객체-props-지양하기)
+9. [HTML Attribute 주의하기](#html-attribute-주의하기)
+10. [...props 주의할 점](#props-주의할-점)
+11. [많은 Props 일단 분리하기](#많은-props-일단-분리하기)
+12. [객체보다는 단순한 Props의 장점](#객체보다는-단순한-props-의-장점)
 
 ### 불필요한 Props 복사 및 연산
 
@@ -240,3 +246,215 @@ function InlineStyle() {
 ```
 
 위는 개선한 코드이다.
+
+### CSS in JS 인라인 스타일 지양하기
+
+```jsx
+return (
+  <button
+    css={css`
+      background-color: ${primary ? 'blue' : 'gray'};
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    `}
+  >
+    {label}
+  </button>
+);
+
+⬇️
+
+return (
+    <button
+      css={[buttonStyles, primary && primaryButtonStyles]}
+    >
+      {label}
+    </button>
+  );
+```
+
+CSS in JS 에서 인라인 스타일을 사용하는 것보다, 객체로 분리해서 사용하는 방식을 추천한다. 이 방식은 다음과 같은 장점이 있다.
+
+- 스타일의 재사용성을 높이고, 코드의 가독성을 향상시킨다(로직을 집중해서 볼 수 있기 때문에). 동적인 스타일을 실수로 건드는 확률이 적어진다. → DX 개선
+- 인라인 스타일의 경우 계산 로직이 매 렌더링마다 실행된다.
+
+### 객체 Props 지양하기
+
+객체를 Props 로 넘기는 것을 왜 지양해야하는지 알아보자.
+
+아래의 예시 코드를 보자.
+
+```jsx
+Object.is(
+  { name: "John" }, // 초기 렌더링
+  { name: "John" } // 두번째 렌더링
+);
+
+Object.is(
+  ["hello"], // 초기 렌더링
+  ["hello"] // 두번째 렌더링
+);
+
+// result: false, false
+```
+
+사람이 보았을 때에는 같다고 보지만 둘다 결과는 `false` 가 나온다. 자바스크립트에서 `Object.is` 메서드는 두 값을 엄격하게 비교하기 때문에, 완전히 같은 객체나 값일 때에만 true 를 반환한다.
+
+<aside>
+💡 이때 완전히 같다-라는 말은 두 변수가 동일한 메모리 주소를 참조하고 있어야 함을 의미한다.
+
+</aside>
+
+먼저 첫번째 객체 리터럴을 보자. 각각의 객체는 코드가 실행될 때마다 새로운 메모리 주소에 생성된다. 따라서 객체의 내용은 같을지라도 서로 다른 메모리 위치에 있기 때문에 `false` 를 반환한다. 두번째 배열 리터럴도 마찬가지이다. 이것 또한 실행될 때마다 새로운 메모리 주소에 생성된다.
+
+리액트에서 Props 로 객체를 전달하면 컴포넌트가 렌더링될 때마다 새로운 객체가 생성된다. 리액트가 props 를 비교할 때에는 기본적으로 얕은 비교를 한다. 하지만 새로운 객체는 매번 다른 메모리 주소를 갖기 때문에 리액트는 props가 변경되었다고 판단하고 컴포넌트를 불필요하게 리렌더링할 것이다.
+
+그러면 어떻게 해야할까?
+
+1. 변하지 않는 값이라면, 컴포넌트 외부로 옮기자.
+
+컴포넌트가 리렌더링 될 때마다 새로 생성되는 것을 방지할 수 있다. → 불필요한 메모리 할당을 줄이고 성능을 향상시킬 수 있다.
+
+```jsx
+const staticData = { key: "value" }; // 외부에 선언
+
+function MyComponent(props) {
+  return <div>{staticData.key}</div>;
+}
+```
+
+`MyComponent` 가 리렌더링 되더라도 `staticData` 는 변하지 않기 때문에, `staticData` 를 사용하는 부분에서 불필요한 리렌더링이 발생하지 않는다.
+
+1. 필요한 값만 객체를 분해해서 Props 로 내려주자.
+
+```jsx
+import React, { useState } from "react";
+
+function ParentComponent() {
+  const [userList, setUserList] = useState(["John", "Jane", "Doe"]);
+
+  return <ChildComponent firstName={userList.at(0)} />;
+}
+```
+
+위 예시처럼 필요한 것만 props로 내려주는 방법도 있겠다.
+
+```jsx
+function SomeComponent({ heavyState }) {
+  const computedState = useMemo(
+    () => ({
+      computedState: heavyState,
+    }),
+    [heavyState]
+  );
+
+  return <ChildComponent computedState={computedState} />;
+}
+```
+
+1. 값 비싼 연산, 잦은 연산이 있을 경우 `useMemo()` 활용
+
+아니면 `useMemo`를 사용할 수도 있다. `heavyState` 의 변화가 있을 때에만 `computedState` 가 다시 계산되기에 개선할 수 있다.
+
+### HTML Attribute 주의하기
+
+HTML, JS에서 정의한 예약어와 커스텀 컴포넌트 props 가 혼용되지 않도록 하자
+
+### …props 주의할 점
+
+스프레드 연산자는 객체를 구조 분해할 수 있는 자바스크립트 문법이다. 이 문법으로 하위 컴포넌트에 props 를 넘기는 일이 많은데 주의할 점이 코드를 예측하기 어렵다는 것이다.
+
+props 가 뭔지 알려면 타고 올라가야한다. props drilling 가 다를게 없으며 리팩토링을 포기해야할 수도 있다.
+
+```jsx
+const ParentComponent = () => {
+  const { 관련없는_props, 관련있는_props, ...나머지_props } = props;
+
+  return <ChildComponent 관련있는_props={관련있는_props} {...나머지_props} />;
+};
+```
+
+따라서 위와 같이 props 에서 스프레드 연산자가 쓰이는 경우,
+
+관련 없는 props, 관련 있는 props, 나머지 props 로 구분을 해서 자식 컴포넌트에 넘기는 방법을 추천한다.
+
+관련 없는 props 는 버리고(하위 컴포넌트로 보내지 않고), 관련 있는 props 는 명시적으로 내려 보내는 것이다.(유지보수할 때 더 편해진다.)
+
+관련 없는 props 를 버리는 것이 불필요한 행위아닐까-라고 생각할 수 있지만 불필요한 객체 더미를 내려 보내는 것보다는 나을 수 있다.
+
+### 많은 Props 일단 분리하기
+
+너무 많은 props 를 넘기는 경우 상태관리 라이브러리를 사용하고, 구조를 바꿔야하고… 이런 부분에 신경을 많이 쓰려고 하는 편인데 이것보단 일단 1차적으로 one depth 분리를 해보는 것이 좋다.
+
+```jsx
+const App = () => {
+  return(
+    <JoinForm
+    user={user}
+    auth={auth}
+    location={location}
+    favorite={favorite}
+    handleSubmit={handleSubmit}
+    handleReset={handleReset}
+    handleCancel={handleCancel}
+    />
+  )
+}
+
+⬇️
+
+const App = () => {
+  return (
+    <JoinForm
+      onSubmit={handleSubmit}
+      onReset={handleReset}
+      onCancle={handleCancel}
+    >
+      <CheckBoxForm formData={user} />
+      <CheckBoxForm formData={auth} />
+      <RadioButtonForm formData={location} />
+      <SectionForm formData={favorite} />
+    </JoinForm>
+  );
+};
+```
+
+변경된 코드에서는 `JoinForm` 이 처리해야할 핸들러만 직접 관리하고, 다른 데이터항목은 별도의 컴포넌트로 분리해서 전달한다.
+
+특히 별도의 컴포넌트로 분리를 할 때, 이 컴포넌트들에는 도메인 네임이 들어가지않도록 해서 확장하기 용이하도록 할 수 있다. 도메인 로직은 별도의 컨텍스트나 훅으로 분리하는 것이다(위 예시에서 `formData`로 관리하는 것처럼)
+
+### 객체보다는 단순한 Props 의 장점
+
+아래의 예시처럼 객체 하나를 통으로 props 로 내려주는 경우가 있을 수 있다. 하지만 props 를 단순하게 줄여보는 것을 추천한다.
+
+```jsx
+const UserInfo = ({ user }) => {
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.email}</p>
+    </div>
+  );
+}
+
+⬇️
+
+const UserInfo = ({ name, email }) => {
+  return (
+    <div>
+      <h1>{name}</h1>
+      <p>{email}</p>
+    </div>
+  );
+}
+```
+
+정말 큰 컴포넌트라면 이 객체가 필요한 데이터만 받아오고 있는 것일지 의심될 수 있고, 그렇게 되면 `UserInfo` 컴포넌트의 위에 있는 상위 컴포넌트들에 따라서 불필요한 생명 주기를 따라가지는 게 아닐까 의심될 수도 있다(`user` 객체가 다시 생성되면 `UserInfo` 컴포넌트가 리렌더링 되기 때문)
+
+따라서 부모 컴포넌트에서 내려오는 props 를 좀 평탄화하는 것이 좋을 수 있다 → 사용할 것만 가져오는 것이다.
+
+나중에 쓸까봐 한번에 가져오는 걸 선호할 수도 있지만, 사용할 것만 가져오면 `memo`로 최적화 하는 것도 더 쉽고 가져오는 props 도 명확해져서 불필요한 렌더링을 줄일 수 있다.
