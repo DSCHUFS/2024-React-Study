@@ -144,3 +144,195 @@ function Component() {
 
   return isLooggedIn && <h1>User</h1>
 ```
+
+## 5. 알아두면 좋은 컴포넌트 네이밍
+
+```jsx
+function ComponentNaming(): Element {
+  return (
+    <>
+      <h1></h1>
+      <h2></h2>
+      <div></div>
+      <input />
+      <MyComponent></MyComponent>
+      <my-component></my-component>
+    </>
+  );
+}
+```
+- 일반적 컴포넌트는 PascalCase
+- 기본 HTML 요소는 lowercase  
+다른 방식의 네이밍을 통해 두가지를 구분할 수 있게 됨  
+- Next.js의 등장
+  - routing 기반의 파일 네이밍은 kebab-case를 사용
+  - ex. component-naming.jsx/index.js
+- 어찌 되었든 컴포넌트 네이밍은 PascalCase의 일관된 사용을 통해 다른 개발자가 구분할 수 있도록 하는 것이 핵심
+- 네이밍에도 왜 이런 네이밍을 지향하는지 생각해보는 것이 좋은 기회가 될 수 있다.
+
+## 6. JSX 컴포넌트 함수로 반환
+- 컴포넌트 안에 함수를 반환하는 JSX형태로 컴포넌트를 렌더링하는 경우
+  - 문제없이 동작하기 때문에 이 안에 JSX나 표현식으로 함수를 집어넣는 경우가 더러 있음.
+```jsx
+return (
+    <div>
+      {TopRender()}
+      <TopRender />
+      {renderMain({
+        
+      })}
+    </div>
+  );
+```
+1. Scope 꼬임 문제 발생가능
+2. Props를 넘기는 것이 까다로움
+3. 반환 값을 바로 알기 어려움
+
+
+## 7. 컴포넌트 내부에 컴포넌트 선언
+```jsx
+// X
+function OuterComponent() {
+  const InnerComponent = () => {
+    return <div>Inner Component</div>;
+  }
+  return (
+    <div>
+      <InnerComponent />
+    </div>
+  )
+}
+
+// O -> 내부 컴포넌트를 밖으로 이동
+const InnerComponent = () => {
+  return <div>Inner Component</div>;
+}
+
+function OuterComponent() {
+  return (
+    <div>
+      <InnerComponent />
+    </div>
+  )
+}
+```
+- 단점
+1. 결합도가 증가함 => 컴포넌트와 상위 컴포넌트가 구조적,스코프적으로 종속
+  - 확장성이 생겨서 분리할때 매우 힘들어짐
+2. 성능의 저하
+  - 상위 컴포넌트의 리렌더링은 하위 컴포넌트 역시 재생성
+
+- 보기 싫지만 확장성을 생각한 개발을 염두에 두고 외부로 빼버리자
+
+## 8. displayName 속성 사용하기
+- 중요한 디버깅요소!(React Devtool)
+- ESLint Rule에도 존재함
+```jsx
+const InputText = forwardRef((props, ref): Element => {
+  return <input type='text' ref={ref} />;
+});
+InputText.displayName = 'InputText'; // 존재유무에 따른 차이
+```
+- HOC 사용시에도 동적으로 바인딩 되기 때문에 display 사용하는 것이 좋다
+```jsx
+const withRouter = (component) : (props:any) => Element => {
+  return (props):Element => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const params = useParams();
+    const navigationType = useNavigationType();
+    return (
+      <Component 
+        {...props}
+        location={location}
+        navigate={navigate}
+        params={params}
+        navigateType={navigateType}
+      />
+    )
+  }
+}
+
+const withRouter = (component) : (props:any) => Element => {
+  const WithRouter =  (props):Element => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    const params = useParams();
+    const navigationType = useNavigationType();
+    return (
+      <Component 
+        {...props}
+        location={location}
+        navigate={navigate}
+        params={params}
+        navigateType={navigateType}
+      />
+    )
+  }
+  WithRouter.displayName = Component.displayName ? Component.name ?? 'WithRouterComponent';
+  return WithRouter
+}
+```
+
+## 9. 컴포넌트 구성하기(정답은 없음)
+1. 상수는 어디에 선언할까?
+2. 타입 선언시 interface와 type 중 어떤걸 사용할까?
+3. 컴포넌트 Props 타입명은 어떤 규칙으로 정의하나요?
+4. 컴포넌트 선언시 const와 function 중 어떤걸 사용하나요?
+5. 어떤 순서로 컴포넌트 내부 변수를 선언하나요?
+6. useEffect는 어디에 선언하나요?
+7. JSX return 하는 규칙이 있나요?
+8. styled-componenet는 어디에 선언하나요?
+
+```jsx
+import React, { useRef, useState } from 'react'
+
+// 변하지 않는 상수값은 외부로 빼자
+const DEFAULT_COUNT = 100;
+
+// interface, type-Alias 타이핑 
+interface SomeComponentProps {
+
+}
+
+// 화살표 함수로 표현식인지, 함수 선언문을 사용하는지
+// 공식문서는 과거는 표현식 요새는 선언문
+const SomeComponent = ({prop1, prop2}: SomeComponentProps) => {
+  // 플래그성 상태, ref, third-party library hook들은 상위에 놔둠
+  let isHold = false;
+
+  const ref = useRef(null);
+
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  const state = useSelector((state) => state);
+  // 커스텀 훅
+  const state = useCustomHooks((state) => state);
+  // 컴포넌트의 내부 상태
+  const [state, setStaet] = useState("SomeState");
+  // 이벤트 함수
+  const onClose = () => handleClose();
+  const onClose = () => handleClose();
+  const onClose = () => handleClose();
+  const onClose = () => handleClose();
+  // Early Return JSX
+  if(isHold) {
+    return <div>데이터가 존재하지 않습니다</div>
+  }
+
+  // useEffect -> Main JSX와 가장 가까운 곳에 위치
+  useEffect(() => {
+    first
+  
+    return () => {
+      second
+    }
+  }, [third])
+  
+  // JSX 반환은 항상 사전에 개행을 동반
+  return (
+    <div></div>
+  )
+
+}
+```
