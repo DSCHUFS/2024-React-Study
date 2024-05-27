@@ -18,7 +18,7 @@ function ComponentNaming() :Element{
 }
 ```
 
-#### 컴포넌트 네이밍 규칙을 이해하고 사용하자 
+#### 컴포넌트 네이밍 규칙을 이해하고 사용하자 !!
 
 
 ## JSX 컴포넌트 함수로 변환
@@ -35,7 +35,7 @@ return(
 )
 ```
 
-TopRender 가 명시적으로 컴포넌트임을 알 수 있습니다
+TopRender 가 명시적으로 컴포넌트임을 알 수 있다.
 
 하지만 
 - 연산된 값이 계속 렌더링 될 때마다 반환되는 건지 문자열인지 알기가 어렵다. 
@@ -73,7 +73,19 @@ function OuterComponent():Element{
 컴포넌트 내부에 추가적으로 컴포넌트 선언-> x
 
  외부로 드러내자
+``` jsx
+const InnerComponent =():Element => {
+    return <div> Inner component </div>;
+};
 
+function OuterComponent():Element{
+    return(
+        <div>
+            <InnerComponent />
+        </div>
+    );
+}
+```
 
 컴포넌트 내부에 컴포넌트를 또 만든다면
 1. 결합도 증가 
@@ -82,12 +94,15 @@ function OuterComponent():Element{
 2. 성능 저하
     - 상위 컴포넌트 리렌더되면 => 하위 컴포넌트 재생성 
 
-### 요약: 컴포넌트 내부에 컴포넌트를 선언하면 결합도가 증가하고 성능저하 될 수 있다. 
+#### 요약: 컴포넌트 내부에 컴포넌트를 선언하면 결합도가 증가하고 성능저하 될 수 있다. 
 
 
 ## displayName
 
- displayName =>  중요한 디버깅 요소
+ displayName =>  
+ displayName은 리액트(React)에서 컴포넌트의 이름을 설정하는 속성으로 이 속성은 주로 디버깅과 개발 도구에서 컴포넌트를 식별하는 데 사용된다. 
+
+ => 중요한 디버깅 요소
 
 리액트 devtools를 했을 때
 
@@ -112,7 +127,7 @@ InputText.displayName = 'inputText';
 forwardRef로 감싸고 동적으로 사용되니까
 
 
-=> InputText.displayName 문자열을 넣어주면 됩니다
+=> InputText.displayName 문자열을 넣어주면 된다. 
 
 
 내가 만든 component들을 타인이 사용할 때
@@ -123,7 +138,7 @@ forwardRef로 감싸고 동적으로 사용되니까
 
 => 확장성이 높은 컴포넌트를 더 디버깅하기 쉽게 전달하기 위한 방법
 
-### devtools에서 익명함수를 쉽게디버깅하려면 displayName속성을 사용하자
+### devtools에서 익명함수를 쉽게디버깅하려면 displayName속성을 사용하자!!
 
 
 ## 컴포넌트 구성하기
@@ -131,14 +146,41 @@ forwardRef로 감싸고 동적으로 사용되니까
 - 상수는 어디에 선언할까?
 - 타입 선언시 interface와 type 중 어떤걸 사용할까?
 - 컴포넌트 Props 타입명은 어떤 규칙으로 정의하나요?
-- 컴포넌트 선언시 const와 function 중 어떤걸 사용하나요?
+- 컴포넌트 선언시 const와 function 중 어떤 걸 사용하나요?
 - 어떤 순서로 컴포넌트 내부 변수를 선언하나요?
 - useEffect는 어디에 선언하나요?
 - JSX return 하는 규칙이 있나요?
 - styled-componenet는 어디에 선언하나요?
 
-
-
 => 정답은 없습니다
 
 팀의 규칙을 따르자 !
+
+---
+상수는 어디에 선언할까?
+
+- 변하지 않을 상수는 컴포넌트 외부에 선언
+
+타입 선언시 interface와 type 중 어떤걸 사용할까?
+
+- interface를 선호
+
+ 컴포넌트 Props 타입명은 어떤 규칙으로 정의하나요?
+- 컴포넌트 명과 일치하는 props 타입명을 사용하는 것을 선호
+
+컴포넌트 선언시 const와 function 중 어떤 걸 사용하나요?
+- 공식 문서에서는 함수 선언문을 사용하기도 하고, 함수 표현식을 사용하기도 함. 타입을 어떻게 하는지 차이를 생각해보자
+
+어떤 순서로 컴포넌트 내부 변수를 선언하나요?
+- 플래그성 상태나 ref는 상단에, Third Party 라이브러리에서 제공하는 hook은 그 다음에, custom hook은 그 다음에, useState와 같은 내부 상태는 마지막에 선언
+
+useEffect는 어디에 선언하나요?
+- useEffect는 main JSX와 가장 가까운 곳에 위치하는 것이 좋다. 
+보통 컴포넌트의 하단에 선언합니다.
+
+
+JSX return 하는 규칙이 있나요?
+- JSX를 반환하는 부분은 앞에 한 칸 개행을 넣어, 반환되는 JSX라는 것을 명확히 표시
+
+ styled-componenet는 어디에 선언하나요?
+- 컴포넌트와 가까운 곳에, 하단에 선언
