@@ -85,7 +85,8 @@ function OuterComponent() : Element {
         <InnerComponent />
         </div>
     );
-}```
+} 
+```
 
 ## 권장 사항
 
@@ -118,7 +119,8 @@ function OuterComponent() : Element {
 ```javascript
 export default ({ a }) => {
     return <>{a}</>
-} ```
+} 
+```
 - 익명 함수로 컴포넌트를 만들면 devtools에서 헷갈림이 생길 수 있다.
 - 컴포넌트에 displayName을 지정해 명확하게 표시되도록 해야 한다.
 
