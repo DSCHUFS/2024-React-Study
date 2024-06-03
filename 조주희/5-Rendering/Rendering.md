@@ -138,6 +138,7 @@ function DangerousySetInnerHTMLexample() {
 
     return <div>{contentHTML}</div> 
     return <div dangerousySetInnerHTMLexample = {contentHTML}/> 
+}
 ```
 
 **결론 : HTML Santinizer API, DOMPurify, eslint-plugin-risxx를 사용하면 XSS 공격의 위험을 줄일 수 있다**
